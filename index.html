@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Inteligente - Programación Lógica (Prolog)</title>
+    <!-- Tau Prolog para ejecución lógica en el navegador -->
+    <script src="https://cdn.jsdelivr.net/npm/tau-prolog@0.3.2/modules/core.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --accent-color: #38bdf8;
+            --text-color: #f8fafc;
+            --code-bg: #090d16;
+            --success: #4ade80;
+            --danger: #f87171;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+            color: var(--accent-color);
+            text-align: center;
+        }
+
+        p.subtitle {
+            color: #94a3b8;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            flex: 1;
+            min-width: 350px;
+        }
+
+        #robotCanvas {
+            background-color: #020617;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+            border: 2px solid #334155;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background-color: var(--code-bg);
+            color: var(--success);
+            font-family: 'Courier New', Courier, monospace;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 10px;
+            box-sizing: border-box;
+            resize: vertical;
+            font-size: 13px;
+        }
+
+        .controls {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            background: var(--code-bg);
+            border: 1px solid #334155;
+            color: #fff;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: var(--accent-color);
+            color: #0f172a;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background-color: #0ea5e9;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #log {
+            margin-top: 15px;
+            padding: 12px;
+            background: var(--code-bg);
+            border-radius: 6px;
+            height: 110px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            border-left: 4px solid var(--accent-color);
+            color: #cbd5e1;
+        }
+
+        .quick-cmds {
+            margin-top: 15px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 12px;
+            background: #334155;
+            color: white;
+        }
+        .btn-small:hover { background: #475569; }
+    </style>
+</head>
+<body>
+
+    <h1>🤖 Simulador de Robot con Prolog</h1>
+    
+
+    <div class="main-container">
+        <!-- Panel Gráfico -->
+        <div class="panel">
+            <h3>Escenario del Robot</h3>
+            <canvas id="robotCanvas" width="400" height="400"></canvas>
+            <div class="quick-cmds">
+                <button class="btn-small" onclick="ejecutarConsultaLista('[arriba]')">Arriba</button>
+                <button class="btn-small" onclick="ejecutarConsultaLista('[abajo]')">Abajo</button>
+                <button class="btn-small" onclick="ejecutarConsultaLista('[izquierda]')">Izquierda</button>
+                <button class="btn-small" onclick="ejecutarConsultaLista('[derecha]')">Derecha</button>
+                <button class="btn-small" onclick="ejecutarConsultaLista('[salto, saludar]')">Baile Corto</button>
+                <button class="btn-small" onclick="ejecutarConsultaLista('[derecha, derecha, salto, izquierda, izquierda]')">Patrullar</button>
+            </div>
+        </div>
+
+        <!-- Panel de Código Lógico (Prolog) -->
+        <div class="panel">
+            <h3>Base de Conocimiento (Prolog)</h3>
+            <textarea id="prologCode">
+% --- HECHOS: Movimientos base [Accion, DX, DY, Wave] ---
+instruccion(arriba, 0, -35, 0).
+instruccion(abajo, 0, 35, 0).
+instruccion(izquierda, -35, 0, 0).
+instruccion(derecha, 35, 0, 0).
+instruccion(salto, 0, -45, 0).
+instruccion(saludar, 0, 0, 1).
+
+% --- REGLAS: Procesamiento recursivo de Listas [Cabeza | Cola] ---
+procesar_secuencia([]).
+procesar_secuencia([H | T]) :-
+    valida(H),
+    instruccion(H, DX, DY, W),
+    procesar_secuencia(T).
+
+% --- NEGACIÓN COMO FALLO: Control de instrucciones inválidas ---
+valida(Accion) :-
+    \+ \+ instruccion(Accion, _, _, _).
+            </textarea>
+
+            <div class="controls">
+                <input type="text" id="queryInput" value="procesar_secuencia([derecha, salto, saludar]).">
+                <button onclick="ejecutarConsultaManual()">Ejecutar</button>
+            </div>
+
+            <div id="log">Consola lógica inicializada. Listo para procesar listas...</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('robotCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let robot = { x: 200, y: 200, armAngle: 0, color: '#38bdf8' };
+        let animQueue = [];
+        let isAnimating = false;
+
+        function renderRobot() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Cuadrícula de referencia
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            for(let i=0; i<canvas.width; i+=40) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            ctx.save();
+            ctx.translate(robot.x, robot.y);
+
+            // Sombra
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.beginPath();
+            ctx.ellipse(0, 50, 25, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Piernas
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(-18, 20, 10, 25);
+            ctx.fillRect(8, 20, 10, 25);
+
+            // Cuerpo
+            ctx.fillStyle = robot.color;
+            ctx.beginPath();
+            ctx.roundRect(-25, -25, 50, 45, 8);
+            ctx.fill();
+            ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+
+            // Pantalla frontal
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-15, -15, 30, 20);
+
+            // Brazos
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(-35, -20, 8, 30);
+
+            ctx.save();
+            ctx.translate(27, -20);
+            ctx.rotate(robot.armAngle);
+            ctx.fillRect(0, -4, 8, 30);
+            ctx.restore();
+
+            // Cabeza
+            ctx.fillStyle = robot.color;
+            ctx.beginPath();
+            ctx.roundRect(-18, -50, 36, 22, 5);
+            ctx.fill(); ctx.stroke();
+
+            // Ojos LED
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.arc(-7, -39, 3, 0, Math.PI * 2);
+            ctx.arc(7, -39, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Antena
+            ctx.beginPath();
+            ctx.moveTo(0, -50); ctx.lineTo(0, -60);
+            ctx.strokeStyle = '#ffffff'; ctx.stroke();
+            ctx.fillStyle = '#f43f5e';
+            ctx.beginPath(); ctx.arc(0, -62, 3, 0, Math.PI * 2); ctx.fill();
+
+            ctx.restore();
+        }
+
+        renderRobot();
+
+        function encolarMovimiento(dx, dy, wave) {
+            animQueue.push({ dx, dy, wave });
+            if (!isAnimating) procesarSiguienteAnimacion();
+        }
+
+        function procesarSiguienteAnimacion() {
+            if (animQueue.length === 0) {
+                isAnimating = false;
+                return;
+            }
+
+            isAnimating = true;
+            const anim = animQueue.shift();
+            const targetX = Math.max(40, Math.min(canvas.width - 40, robot.x + anim.dx));
+            const targetY = Math.max(50, Math.min(canvas.height - 50, robot.y + anim.dy));
+            
+            let frame = 0;
+            const totalFrames = 12;
+            const startX = robot.x;
+            const startY = robot.y;
+
+            function step() {
+                frame++;
+                const progress = frame / totalFrames;
+                robot.x = startX + (targetX - startX) * progress;
+                robot.y = startY + (targetY - startY) * progress;
+
+                if (anim.wave > 0) {
+                    robot.armAngle = Math.sin(progress * Math.PI * 4) * 0.7 - 0.4;
+                } else {
+                    robot.armAngle = 0;
+                }
+
+                renderRobot();
+
+                if (frame < totalFrames) {
+                    requestAnimationFrame(step);
+                } else {
+                    robot.armAngle = 0;
+                    renderRobot();
+                    setTimeout(procesarSiguienteAnimacion, 50);
+                }
+            }
+            step();
+        }
+
+        function logMsg(text, isError = false) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += `<div style="color: ${isError ? 'var(--danger)' : 'var(--success)'}">> ${text}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        let session = pl.create(1000);
+
+        function compilarProlog(callback) {
+            const code = document.getElementById('prologCode').value;
+            session = pl.create(1000);
+            session.consult(code, {
+                success: function() {
+                    logMsg("Base de conocimiento y reglas de listas compiladas.");
+                    if(callback) callback();
+                },
+                error: function(err) {
+                    logMsg("Error de sintaxis en Prolog: " + err, true);
+                }
+            });
+        }
+
+        // Extrae dinámicamente los elementos de la lista evaluada en Prolog y los anima
+        function extraerYAnimarLista(listaAcciones) {
+            listaAcciones.forEach((accion, index) => {
+                session.query(`instruccion(${accion}, DX, DY, W).`, {
+                    success: function() {
+                        session.answer(ans => {
+                            if (ans) {
+                                const dx = parseInt(ans.links['DX'].toJavaScript());
+                                const dy = parseInt(ans.links['DY'].toJavaScript());
+                                const wave = parseInt(ans.links['W'].toJavaScript());
+                                setTimeout(() => {
+                                    encolarMovimiento(dx, dy, wave);
+                                }, index * 600);
+                            }
+                        });
+                    }
+                });
+            });
+        }
+
+        function ejecutarConsultaLista(listaStr) {
+            document.getElementById('queryInput').value = `procesar_secuencia(${listaStr}).`;
+            compilarProlog(() => {
+                const query = `procesar_secuencia(${listaStr}).`;
+                logMsg("Consulta: " + query);
+                
+                session.query(query, {
+                    success: function() {
+                        session.answer(ans => {
+                            if (ans !== false) {
+                                logMsg("¡Secuencia validada con éxito mediante recursión de listas!");
+                                // Limpiamos la cadena de lista para extraer los átomos limpios
+                                const limpia = listaStr.replace(/[\[\]]/g, '').split(',').map(s => s.trim());
+                                extraerYAnimarLista(limpia);
+                            } else {
+                                logMsg("Fallo: La instrucción no es válida (Negación como fallo aplicada).", true);
+                            }
+                        });
+                    },
+                    error: function(err) {
+                        logMsg("Error en la ejecución: " + err, true);
+                    }
+                });
+            });
+        }
+
+        function ejecutarConsultaManual() {
+            const query = document.getElementById('queryInput').value;
+            // Intentamos extraer una lista si el usuario escribió procesar_secuencia([...])
+            compilarProlog(() => {
+                logMsg("Consulta: " + query);
+                session.query(query, {
+                    success: function() {
+                        session.answer(ans => {
+                            if (ans !== false) {
+                                logMsg("Resultado exitoso en Prolog.");
+                                // Extraer elementos si coincide con procesar_secuencia
+                                const match = query.match(/procesar_secuencia\(\s*\[(.*)\]\s*\)/);
+                                if (match && match[1]) {
+                                    const items = match[1].split(',').map(s => s.trim());
+                                    extraerYAnimarLista(items);
+                                }
+                            } else {
+                                logMsg("La consulta devolvió falso (false).", true);
+                            }
+                        });
+                    },
+                    error: function(err) {
+                        logMsg("Error: " + err, true);
+                    }
+                });
+            });
+        }
+
+        window.onload = () => {
+            compilarProlog();
+        };
+    </script>
+</body>
+</html>
